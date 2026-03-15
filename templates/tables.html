@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tables – Excel to Database Loader</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; max-width: 720px; }
+      .hint { color: #444; font-size: 0.95rem; }
+      table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+      th, td { border: 1px solid #ddd; padding: 0.5rem 0.8rem; text-align: left; }
+      th { background: #f7f7f7; }
+      a { color: #0066cc; }
+      code { background: #f7f7f7; padding: 0.15rem 0.35rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Tables in database</h1>
+    <p class="hint">Connected to <code>{{ database_label }}</code>. Database: <code>{{ database_url }}</code></p>
+    <p><a href="{{ url_for('index') }}">Back to upload</a></p>
+    {% if tables %}
+    <table>
+      <thead>
+        <tr><th>Table</th><th>Rows</th></tr>
+      </thead>
+      <tbody>
+        {% for name, count in tables %}
+        <tr><td>{{ name }}</td><td>{{ count if count is not none else '?' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No tables yet. Upload an Excel file from the <a href="{{ url_for('index') }}">main page</a>.</p>
+    {% endif %}
+  </body>
+</html>

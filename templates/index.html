@@ -62,6 +62,7 @@
     <h1>Excel to Database Loader</h1>
     <p class="hint">
       Connected to <code>{{ database_label }}</code>. On first upload, a table is created from the Excel columns.
+      <a href="{{ url_for('tables') }}">View tables in database</a>
     </p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -70,6 +71,14 @@
           {% for category, message in messages %}
             <li class="{{ category }}">{{ message }}</li>
           {% endfor %}
+        </ul>
+      {% elif error_from_query %}
+        <ul class="messages">
+          <li class="error">{{ error_from_query }}</li>
+        </ul>
+      {% elif success_from_query %}
+        <ul class="messages">
+          <li class="success">{{ success_from_query }}</li>
         </ul>
       {% endif %}
     {% endwith %}

@@ -1,7 +1,10 @@
+import logging
 import os
 import re
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
 
@@ -21,12 +24,21 @@ from sqlalchemy import (
     Text,
     create_engine,
     inspect,
+    text,
 )
 from sqlalchemy.exc import SQLAlchemyError
 
 
 def build_database_url() -> str:
-    return os.getenv("DATABASE_URL", "sqlite:///app.db")
+    """Always use SQLite; ignore DATABASE_URL if it points to PostgreSQL (e.g. Railway)."""
+    url = os.getenv("DATABASE_URL", "").strip()
+    if url and ("postgres" in url.lower() or "postgresql" in url.lower()):
+        url = ""
+    if not url:
+        base = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base, "app.db").replace("\\", "/")
+        url = f"sqlite:///{path}"
+    return url
 
 
 def database_label(database_url: str) -> str:
@@ -148,22 +160,63 @@ def dataframe_to_records(df: pd.DataFrame) -> List[Dict[str, object]]:
 
 @app.get("/")
 def index():
-    return render_template("index.html", database_label=DATABASE_LABEL)
+    error_from_query = request.args.get("error")
+    success_from_query = request.args.get("success")
+    return render_template(
+        "index.html",
+        database_label=DATABASE_LABEL,
+        error_from_query=error_from_query,
+        success_from_query=success_from_query,
+    )
+
+
+@app.get("/tables")
+def tables():
+    """List tables in the database and their row counts (for debugging)."""
+    try:
+        engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
+        inspector = inspect(engine)
+        table_names = inspector.get_table_names()
+        rows = []
+        with engine.connect() as conn:
+            for name in table_names:
+                if name.startswith("sqlite_"):
+                    continue
+                try:
+                    r = conn.execute(text(f'SELECT COUNT(*) FROM "{name}"')).scalar()
+                    rows.append((name, r))
+                except Exception:
+                    rows.append((name, None))
+        return render_template("tables.html", database_label=DATABASE_LABEL, tables=rows, database_url=DATABASE_URL)
+    except Exception as e:
+        logger.exception("Failed to list tables")
+        return f"Error: {e}", 500
+
+
+def _safe_query_msg(msg: str, max_len: int = 200) -> str:
+    """Shorten message for URL query string to avoid truncation."""
+    msg = str(msg).replace("&", " ").replace("=", " ").replace("?", " ")[:max_len]
+    return msg
 
 
 @app.post("/upload")
 def upload():
+    # Log immediately so we see if the request reaches this server
+    logger.info("POST /upload received: form_keys=%s, files=%s", list(request.form.keys()), list(request.files.keys()))
+
     uploaded_file = request.files.get("excel_file")
     table_name_input = request.form.get("table_name", "")
     table_name = normalize_table_name(table_name_input)
 
+    logger.info("Upload attempt: file=%s, table_name=%s", uploaded_file.filename if uploaded_file else None, table_name)
+
     if uploaded_file is None or uploaded_file.filename == "":
         flash("Please choose an Excel file before uploading.", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("index", error=_safe_query_msg("No file selected")))
 
     if not uploaded_file.filename.lower().endswith((".xlsx", ".xls", ".xlsm")):
         flash("Unsupported file type. Please upload an Excel file.", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("index", error=_safe_query_msg("Unsupported file type")))
 
     try:
         dataframe = pd.read_excel(uploaded_file)
@@ -188,25 +241,27 @@ def upload():
         with engine.begin() as connection:
             connection.execute(table.insert(), records)
 
-        if created_new_table:
-            flash(
-                f"Created table '{table_name}' and inserted {len(records)} rows successfully.",
-                "success",
-            )
-        else:
-            flash(f"Inserted {len(records)} rows into '{table_name}' successfully.", "success")
+        logger.info("Inserted %d rows into table '%s'", len(records), table_name)
+        success_msg = f"Created table '{table_name}' and inserted {len(records)} rows." if created_new_table else f"Inserted {len(records)} rows into '{table_name}'."
+        flash(success_msg, "success")
+        return redirect(url_for("index", success=_safe_query_msg(success_msg)))
 
     except ValueError as error:
+        logger.warning("Upload ValueError: %s", error)
         flash(str(error), "error")
+        return redirect(url_for("index", error=_safe_query_msg(str(error))))
     except SQLAlchemyError as error:
+        logger.exception("Upload SQLAlchemyError")
         flash(f"Database error: {error}", "error")
+        return redirect(url_for("index", error=_safe_query_msg(str(error))))
     except Exception as error:  # noqa: BLE001
+        logger.exception("Upload failed")
         flash(f"Failed to process file: {error}", "error")
-
-    return redirect(url_for("index"))
+        return redirect(url_for("index", error=_safe_query_msg(str(error))))
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT", "8000")),
