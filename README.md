@@ -9,21 +9,13 @@ Simple Flask application to upload an Excel file and load it into a database tab
 3. Rows are inserted into that table.
 4. On later uploads to the same table, data is appended.
 
-## Database connection
+## Database
 
-Set `DATABASE_URL` to your existing database connection string.
+The app uses **SQLite** and stores data in `app.db` in the project directory. No database server is required.
 
-Examples:
-
-- PostgreSQL: `postgresql+psycopg://user:password@host:5432/dbname`
-- MySQL: `mysql+pymysql://user:password@host:3306/dbname`
-- SQL Server: `mssql+pyodbc://...`
-
-If not set, SQLite is used: `sqlite:///app.db`.
+Optional: set `DATABASE_URL` in `.env` to use a different SQLite path (e.g. `sqlite:///other.db`).
 
 ## Run locally
-
-### Option A: SQLite (no database setup)
 
 ```bash
 python -m venv .venv
@@ -32,56 +24,19 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open: `http://localhost:8000`. The app uses `sqlite:///app.db` by default.
-
-### Option B: PostgreSQL (local or Docker)
-
-1. **Start PostgreSQL**
-
-   - **Docker:** from the project root run:
-     ```bash
-     docker compose up -d
-     ```
-     This starts Postgres with user `postgres`, password `postgres`, database `appdb` on port 5432.
-
-   - **Installed locally:** ensure Postgres is running and create a database (e.g. `appdb`).
-
-2. **Set the database URL**
-
-   - **Option 1 – use a `.env` file:** copy `.env.example` to `.env`, set `DATABASE_URL` (and optionally `SECRET_KEY`). For the Docker setup above use:
-     ```
-     DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/appdb
-     ```
-   - **Option 2 – set in the shell:**
-     - PowerShell: `$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/appdb"`
-     - Bash: `export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/appdb"`
-
-3. **Run the app**
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate   # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   python app.py
-   ```
-
 Open: `http://localhost:8000`
 
-## Deploy on Railway (PostgreSQL)
+## Deploy on Railway
 
-1. Create a Railway project and add a **PostgreSQL** service.
-2. Railway will inject `DATABASE_URL` automatically.
-3. Set `SECRET_KEY` in Railway Variables.
-4. Use this Start Command:
+1. Create a Railway project and deploy from GitHub.
+2. Set `SECRET_KEY` in Railway Variables.
+3. Use this Start Command:
 
 ```bash
 gunicorn app:app --bind 0.0.0.0:$PORT
 ```
 
-### Railway/Postgres compatibility
-
-- The app automatically converts `postgres://...` to `postgresql+psycopg://...` for SQLAlchemy.
-- The Postgres driver is included via `psycopg[binary]`.
+Note: On Railway the filesystem is ephemeral, so SQLite data in `app.db` will not persist across redeploys unless you add a volume.
 
 ## Notes
 

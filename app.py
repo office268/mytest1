@@ -26,14 +26,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 def build_database_url() -> str:
-    raw_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
-
-    # Railway commonly provides postgres:// URLs; SQLAlchemy expects a driver-aware scheme.
-    if raw_url.startswith("postgres://"):
-        return raw_url.replace("postgres://", "postgresql+psycopg://", 1)
-    if raw_url.startswith("postgresql://"):
-        return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
-    return raw_url
+    return os.getenv("DATABASE_URL", "sqlite:///app.db")
 
 
 def database_label(database_url: str) -> str:

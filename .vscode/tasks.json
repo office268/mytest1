@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Commit and push",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File \"${workspaceFolder}/commit-and-push.ps1\"",
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "שלב 1: מעבר לתיקייה",
+      "type": "shell",
+      "command": "cd \"${workspaceFolder}\"",
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "שלב 2: הפעלת venv",
+      "type": "shell",
+      "command": "cd \"${workspaceFolder}\"; .\\.venv\\Scripts\\Activate.ps1",
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "שלב 3: התקנת תלויות",
+      "type": "shell",
+      "command": "cd \"${workspaceFolder}\"; .\\.venv\\Scripts\\Activate.ps1; pip install -r requirements.txt",
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "שלב 4: הרצת האפליקציה",
+      "type": "shell",
+      "command": "cd \"${workspaceFolder}\"; .\\.venv\\Scripts\\Activate.ps1; python app.py",
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "shared", "revealRevealFocus": true }
+    },
+    {
+      "label": "שלב 5: פתיחת האתר בדפדפן",
+      "type": "shell",
+      "command": "Start-Process \"http://localhost:8000\"",
+      "group": "none",
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    }
+  ]
+}

@@ -1,5 +1,4 @@
-# Local PostgreSQL for development. Run: docker compose up -d
-# Then set: DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/appdb
+# Not used by this app (app uses SQLite only). Kept for reference only.
 services:
   db:
     image: postgres:16-alpine
