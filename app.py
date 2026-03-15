@@ -30,15 +30,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 def build_database_url() -> str:
-    """Always use SQLite; ignore DATABASE_URL if it points to PostgreSQL (e.g. Railway)."""
-    url = os.getenv("DATABASE_URL", "").strip()
-    if url and ("postgres" in url.lower() or "postgresql" in url.lower()):
-        url = ""
-    if not url:
-        base = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(base, "app.db").replace("\\", "/")
-        url = f"sqlite:///{path}"
-    return url
+    """Always use SQLite (app.db in project folder). DATABASE_URL is ignored."""
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, "app.db").replace("\\", "/")
+    return f"sqlite:///{path}"
 
 
 def database_label(database_url: str) -> str:
