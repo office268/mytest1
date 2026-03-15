@@ -33,6 +33,22 @@ python app.py
 
 Open: `http://localhost:8000`
 
+## Deploy on Railway (PostgreSQL)
+
+1. Create a Railway project and add a **PostgreSQL** service.
+2. Railway will inject `DATABASE_URL` automatically.
+3. Set `SECRET_KEY` in Railway Variables.
+4. Use this Start Command:
+
+```bash
+gunicorn app:app --bind 0.0.0.0:$PORT
+```
+
+### Railway/Postgres compatibility
+
+- The app automatically converts `postgres://...` to `postgresql+psycopg://...` for SQLAlchemy.
+- The Postgres driver is included via `psycopg[binary]`.
+
 ## Notes
 
 - Column and table names are normalized to safe SQL identifiers.

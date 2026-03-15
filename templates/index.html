@@ -61,7 +61,7 @@
   <body>
     <h1>Excel to Database Loader</h1>
     <p class="hint">
-      Connected using <code>{{ database_url }}</code>. On first upload, a table is created from the Excel columns.
+      Connected to <code>{{ database_label }}</code>. On first upload, a table is created from the Excel columns.
     </p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}

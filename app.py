@@ -1,6 +1,7 @@
 import os
 import re
 from typing import Dict, List, Tuple
+from urllib.parse import urlparse
 
 import pandas as pd
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -20,7 +21,29 @@ from sqlalchemy import (
 from sqlalchemy.exc import SQLAlchemyError
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")
+def build_database_url() -> str:
+    raw_url = os.getenv("DATABASE_URL", "sqlite:///app.db")
+
+    # Railway commonly provides postgres:// URLs; SQLAlchemy expects a driver-aware scheme.
+    if raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+    if raw_url.startswith("postgresql://"):
+        return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return raw_url
+
+
+def database_label(database_url: str) -> str:
+    parsed = urlparse(database_url)
+    scheme = parsed.scheme
+    if scheme.startswith("postgresql"):
+        return "PostgreSQL"
+    if scheme.startswith("sqlite"):
+        return "SQLite"
+    return scheme or "Unknown"
+
+
+DATABASE_URL = build_database_url()
+DATABASE_LABEL = database_label(DATABASE_URL)
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret")
 
 app = Flask(__name__)
@@ -128,7 +151,7 @@ def dataframe_to_records(df: pd.DataFrame) -> List[Dict[str, object]]:
 
 @app.get("/")
 def index():
-    return render_template("index.html", database_url=DATABASE_URL)
+    return render_template("index.html", database_label=DATABASE_LABEL)
 
 
 @app.post("/upload")
@@ -149,7 +172,7 @@ def upload():
         dataframe = pd.read_excel(uploaded_file)
         dataframe, _ = sanitize_dataframe(dataframe)
 
-        engine = create_engine(DATABASE_URL, future=True)
+        engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
         inspector = inspect(engine)
         created_new_table = False
 
@@ -187,4 +210,8 @@ def upload():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        debug=os.getenv("FLASK_DEBUG", "0") == "1",
+    )
