@@ -3,3 +3,5 @@ __pycache__/
 *.db
 .venv/
 .env
+test_data.xlsx
+verify_result.txt

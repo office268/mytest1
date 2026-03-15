@@ -3,5 +3,4 @@ python-dotenv
 pandas
 SQLAlchemy
 openpyxl
-psycopg[binary]
 gunicorn
