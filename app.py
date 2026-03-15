@@ -3,7 +3,11 @@ import re
 from typing import Dict, List, Tuple
 from urllib.parse import urlparse
 
+from dotenv import load_dotenv
+
 import pandas as pd
+
+load_dotenv()
 from flask import Flask, flash, redirect, render_template, request, url_for
 from sqlalchemy import (
     BigInteger,

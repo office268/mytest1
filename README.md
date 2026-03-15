@@ -23,13 +23,47 @@ If not set, SQLite is used: `sqlite:///app.db`.
 
 ## Run locally
 
+### Option A: SQLite (no database setup)
+
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-export DATABASE_URL="postgresql+psycopg://user:password@host:5432/dbname"
 python app.py
 ```
+
+Open: `http://localhost:8000`. The app uses `sqlite:///app.db` by default.
+
+### Option B: PostgreSQL (local or Docker)
+
+1. **Start PostgreSQL**
+
+   - **Docker:** from the project root run:
+     ```bash
+     docker compose up -d
+     ```
+     This starts Postgres with user `postgres`, password `postgres`, database `appdb` on port 5432.
+
+   - **Installed locally:** ensure Postgres is running and create a database (e.g. `appdb`).
+
+2. **Set the database URL**
+
+   - **Option 1 – use a `.env` file:** copy `.env.example` to `.env`, set `DATABASE_URL` (and optionally `SECRET_KEY`). For the Docker setup above use:
+     ```
+     DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/appdb
+     ```
+   - **Option 2 – set in the shell:**
+     - PowerShell: `$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/appdb"`
+     - Bash: `export DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/appdb"`
+
+3. **Run the app**
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   python app.py
+   ```
 
 Open: `http://localhost:8000`
 
