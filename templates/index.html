@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Excel to Database Loader</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        max-width: 720px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+      }
+      .hint {
+        color: #444;
+        font-size: 0.95rem;
+      }
+      .messages {
+        list-style: none;
+        padding: 0;
+      }
+      .messages li {
+        margin: 0.4rem 0;
+        padding: 0.6rem 0.8rem;
+        border-radius: 4px;
+      }
+      .messages .success {
+        background: #e8f7ec;
+        border: 1px solid #9fd7ad;
+      }
+      .messages .error {
+        background: #fdeaea;
+        border: 1px solid #f3a0a0;
+      }
+      label {
+        display: block;
+        margin-top: 0.8rem;
+        font-weight: 600;
+      }
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        margin-top: 0.3rem;
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.55rem 1rem;
+        cursor: pointer;
+      }
+      code {
+        background: #f7f7f7;
+        padding: 0.15rem 0.35rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Excel to Database Loader</h1>
+    <p class="hint">
+      Connected to <code>{{ database_label }}</code>. On first upload, a table is created from the Excel columns.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="messages">
+          {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="table_name">Target table name</label>
+        <input
+          type="text"
+          id="table_name"
+          name="table_name"
+          placeholder="example: customers_2026"
+          required
+        />
+
+        <label for="excel_file">Excel file</label>
+        <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,.xlsm" required />
+
+        <button type="submit">Upload and Load</button>
+      </form>
+    </div>
+  </body>
+</html>
