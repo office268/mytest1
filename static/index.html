@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #181825;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #313244;
+    }
+
+    header h1 {
+      font-size: 1rem;
+      color: #cba6f7;
+      font-weight: 600;
+    }
+
+    .lang-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-tab {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: #313244;
+      color: #a6adc8;
+      transition: all 0.15s;
+    }
+
+    .lang-tab:hover { background: #45475a; }
+
+    .lang-tab.active {
+      background: #cba6f7;
+      color: #1e1e2e;
+    }
+
+    .run-btn {
+      margin-left: auto;
+      padding: 6px 18px;
+      background: #a6e3a1;
+      color: #1e1e2e;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .run-btn:hover { opacity: 0.85; }
+
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #313244;
+    }
+
+    .pane-label {
+      font-size: 0.7rem;
+      color: #6c7086;
+      padding: 4px 10px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #editor-container {
+      flex: 1;
+    }
+
+    .preview-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #181825;
+    }
+
+    #preview-frame {
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+
+    #output-box {
+      flex: 1;
+      padding: 14px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      overflow: auto;
+      background: #11111b;
+      color: #cdd6f4;
+    }
+
+    .error-text { color: #f38ba8; }
+    .success-text { color: #a6e3a1; }
+    .hint { color: #585b70; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Code Preview</h1>
+  <div class="lang-tabs">
+    <button class="lang-tab active" data-lang="python">Python</button>
+    <button class="lang-tab" data-lang="html">HTML</button>
+    <button class="lang-tab" data-lang="css">CSS</button>
+    <button class="lang-tab" data-lang="javascript">JavaScript</button>
+    <button class="lang-tab" data-lang="react">React</button>
+  </div>
+  <button class="run-btn" id="runBtn">▶ Run (Ctrl+Enter)</button>
+</header>
+
+<div class="workspace">
+  <div class="editor-pane">
+    <div class="pane-label">Editor</div>
+    <div id="editor-container"></div>
+  </div>
+  <div class="preview-pane">
+    <div class="pane-label">Preview / Output</div>
+    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin" style="display:none"></iframe>
+    <div id="output-box"><span class="hint">Press ▶ Run to execute your code...</span></div>
+  </div>
+</div>
+
+<!-- Monaco Editor -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+<script>
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+
+let editor;
+let currentLang = 'python';
+
+const STARTERS = {
+  python: `# Python Example\nprint("Hello from Python!")\n\nfor i in range(5):\n    print(f"  Line {i + 1}")`,
+  html: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: sans-serif; padding: 20px; background: #f0f4ff; }\n    h1 { color: #6c63ff; }\n  </style>\n</head>\n<body>\n  <h1>Hello from HTML!</h1>\n  <p>Edit me and press Run.</p>\n</body>\n</html>`,
+  css: `/* CSS Preview wraps your styles around a demo page */\nbody {\n  background: linear-gradient(135deg, #667eea, #764ba2);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\nh1 {\n  color: white;\n  font-family: sans-serif;\n  font-size: 2rem;\n  text-shadow: 0 2px 10px rgba(0,0,0,0.3);\n}`,
+  javascript: `// JavaScript Example\nconst items = ['Apple', 'Banana', 'Cherry'];\n\nconst list = document.createElement('ul');\nitems.forEach(item => {\n  const li = document.createElement('li');\n  li.textContent = item;\n  li.style.padding = '4px 0';\n  list.appendChild(li);\n});\n\ndocument.body.style.fontFamily = 'sans-serif';\ndocument.body.style.padding = '20px';\ndocument.body.appendChild(document.createElement('h2')).textContent = 'Fruit List';\ndocument.body.appendChild(list);`,
+  react: `// React Example (JSX)\nfunction App() {\n  const [count, setCount] = React.useState(0);\n\n  return (\n    <div style={{ fontFamily: 'sans-serif', padding: 20, textAlign: 'center' }}>\n      <h2 style={{ color: '#61dafb' }}>React Counter</h2>\n      <p style={{ fontSize: 48, margin: '16px 0' }}>{count}</p>\n      <button\n        onClick={() => setCount(c => c + 1)}\n        style={{ padding: '8px 24px', fontSize: 16, borderRadius: 8,\n                 background: '#61dafb', border: 'none', cursor: 'pointer' }}\n      >\n        Click me!\n      </button>\n    </div>\n  );\n}\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);`
+};
+
+const MONACO_LANG_MAP = {
+  python: 'python',
+  html: 'html',
+  css: 'css',
+  javascript: 'javascript',
+  react: 'javascript'
+};
+
+require(['vs/editor/editor.main'], function () {
+  // Dark theme matching the app
+  monaco.editor.defineTheme('catppuccin', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#1e1e2e',
+      'editor.foreground': '#cdd6f4',
+      'editorLineNumber.foreground': '#45475a',
+      'editor.selectionBackground': '#313244',
+    }
+  });
+
+  editor = monaco.editor.create(document.getElementById('editor-container'), {
+    value: STARTERS.python,
+    language: 'python',
+    theme: 'catppuccin',
+    fontSize: 14,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    lineNumbers: 'on',
+    automaticLayout: true,
+    tabSize: 2,
+    wordWrap: 'on',
+  });
+
+  // Ctrl+Enter to run
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCode);
+});
+
+// Language tab switching
+document.querySelectorAll('.lang-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lang-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLang = btn.dataset.lang;
+
+    if (editor) {
+      monaco.editor.setModelLanguage(editor.getModel(), MONACO_LANG_MAP[currentLang]);
+      editor.setValue(STARTERS[currentLang]);
+    }
+
+    clearPreview();
+  });
+});
+
+document.getElementById('runBtn').addEventListener('click', runCode);
+
+function clearPreview() {
+  document.getElementById('preview-frame').style.display = 'none';
+  document.getElementById('output-box').style.display = 'block';
+  document.getElementById('output-box').innerHTML = '<span class="hint">Press ▶ Run to execute your code...</span>';
+}
+
+async function runCode() {
+  const code = editor ? editor.getValue() : '';
+
+  if (currentLang === 'python') {
+    await runPython(code);
+  } else {
+    runInFrame(code);
+  }
+}
+
+async function runPython(code) {
+  const outBox = document.getElementById('output-box');
+  const frame = document.getElementById('preview-frame');
+  frame.style.display = 'none';
+  outBox.style.display = 'block';
+  outBox.innerHTML = '<span class="hint">Running...</span>';
+
+  try {
+    const res = await fetch('/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language: 'python' })
+    });
+    const data = await res.json();
+
+    let html = '';
+    if (data.stdout) {
+      html += `<span class="success-text">${escapeHtml(data.stdout)}</span>`;
+    }
+    if (data.stderr) {
+      html += `<span class="error-text">${escapeHtml(data.stderr)}</span>`;
+    }
+    if (data.error) {
+      html += `<span class="error-text">${escapeHtml(data.error)}</span>`;
+    }
+    if (!html) {
+      html = '<span class="hint">(no output)</span>';
+    }
+    outBox.innerHTML = html;
+  } catch (e) {
+    outBox.innerHTML = `<span class="error-text">Network error: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+function runInFrame(code) {
+  const frame = document.getElementById('preview-frame');
+  const outBox = document.getElementById('output-box');
+  outBox.style.display = 'none';
+  frame.style.display = 'block';
+
+  let srcdoc = '';
+
+  if (currentLang === 'html') {
+    srcdoc = code;
+  } else if (currentLang === 'css') {
+    srcdoc = `<!DOCTYPE html><html><head><style>${code}</style></head><body><h1>CSS Preview</h1><p>Your styles are applied here.</p></body></html>`;
+  } else if (currentLang === 'javascript') {
+    srcdoc = `<!DOCTYPE html><html><body><script>${code}<\/script></body></html>`;
+  } else if (currentLang === 'react') {
+    srcdoc = `<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"><\/script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">${code}<\/script>
+</body>
+</html>`;
+  }
+
+  frame.srcdoc = srcdoc;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>
